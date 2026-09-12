@@ -1,25 +1,20 @@
 ---
 name: scaffold-terraform
-description: Generate complete Terraform infrastructure for S3 + CloudFront static site hosting. Use when setting up a new project or regenerating infrastructure files.
-allowed-tools: Bash, Read, Write, Grep, Glob
-disable-model-invocation: true
-argument-hint: "[aws-region] [project-name]"
+description: Scaffolds AWS S3 and CloudFront Terraform modules for static site hosting
+allowed-tools: Bash, Read, Write, Grep
 ---
 
-Generate a complete Terraform configuration for deploying a static website to AWS using S3 + CloudFront.
+# Scaffold Terraform Infrastructure
 
-Use $ARGUMENTS for optional overrides:
-- $0 = AWS region (default: ap-south-1)
-- $1 = Project name (default: portfolio-site)
+Follow the instructions in `template-spec.md` to generate the Terraform files inside the `terraform/` directory.
 
-## What to Generate
+## Steps
 
-Read `template-spec.md` in this skill folder for the full infrastructure specification.
-
-Generate all files in the `terraform/` directory following the template spec.
-
-## After Generation
-
-- [ ] List all files created
-- [ ] Show a summary of resources that will be provisioned
-- [ ] Remind the engineer to review the files and run `/tf-plan` when ready
+1. Read `template-spec.md` in this directory.
+2. Create the `terraform/` root directory if it does not exist.
+3. Generate the required Terraform configuration files:
+   - `main.tf`
+   - `variables.tf`
+   - `outputs.tf`
+   - `providers.tf`
+4. Confirm completion and output a full list of created files with a short summary.

@@ -1,29 +1,21 @@
 # Terraform Template Specification
 
-Generate these files in the `terraform/` directory:
+## Target Architecture
 
-**terraform/main.tf:**
-- S3 bucket (private, no public access, block all public ACLs)
-- S3 bucket policy granting CloudFront OAC read access
-- CloudFront Origin Access Control (OAC) — NOT legacy OAI
-- CloudFront distribution with:
-  - S3 origin using OAC
-  - Default root object: index.html
-  - Custom error response: 404 → /index.html (200)
-  - Viewer protocol policy: redirect-to-https
-  - Price class: PriceClass_200
-  - Default cache behavior with CachingOptimized managed policy
-- All resources tagged with `Project` and `Environment` variables
+- **Provider**: AWS (`hashicorp/aws`, version `~> 5.0`)
+- **Hosting**: AWS S3 bucket configured for website hosting (or CloudFront OAC origin)
+- **CDN**: CloudFront distribution pointing to the S3 bucket
+- **Default Root Object**: `index.html`
 
-**terraform/variables.tf:**
-- Variables for: region, project_name, environment (default "production"), domain_name (default "")
+## Files to Generate in `terraform/`:
 
-**terraform/outputs.tf:**
-- Outputs for: cloudfront_distribution_id, cloudfront_domain_name, s3_bucket_name, s3_bucket_arn
-
-**terraform/providers.tf:**
-- AWS provider with region variable, terraform block with required_version >= 1.5 and AWS provider source
-
-**terraform/backend.tf:**
-- S3 backend block (commented out with instructions to uncomment after creating state bucket)
-- Include comments explaining: first run `terraform init` without backend, create the resources, then uncomment backend and run `terraform init -migrate-state`
+1. `providers.tf`: AWS provider definition with default region `us-east-1` (or parameterizable).
+2. `variables.tf`: Configuration variables for bucket name, project environment, and domain names.
+3. `main.tf`:
+   - `aws_s3_bucket`
+   - `aws_s3_bucket_public_access_block`
+   - `aws_s3_bucket_policy`
+   - `aws_cloudfront_distribution`
+4. `outputs.tf`:
+   - S3 bucket name and ARN
+   - CloudFront distribution ID and domain name

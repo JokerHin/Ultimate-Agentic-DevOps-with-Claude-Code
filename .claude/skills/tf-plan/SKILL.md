@@ -1,15 +1,14 @@
 ---
 name: tf-plan
-description: Run terraform plan and analyze the output for risks. Use before applying any infrastructure changes.
+description: Runs terraform plan and summarizes the infrastructure changes without modifying files
 allowed-tools: Bash, Read, Grep
 disable-model-invocation: true
 ---
 
-Run `cd terraform && terraform plan -no-color` and analyze the output.
+# Terraform Plan Execution
 
-Summarize:
-- [ ] How many resources will be added, changed, or destroyed
-- [ ] Any potential issues or risks (e.g., resource replacements, security group changes, data loss)
-- [ ] Estimated blast radius
-
-If the plan fails, diagnose the error and suggest a fix.
+1. Navigate to the `terraform/` directory.
+2. Run `terraform plan -no-color`.
+3. Read and analyze the command output:
+   - If successful: Summarize planned additions, changes, or destructions.
+   - If an error occurs (such as missing credentials/auth error): Explain the error clearly and state the required fix.
