@@ -17,17 +17,16 @@ resource "aws_s3_bucket_public_access_block" "website_bucket_lockdown" {
   restrict_public_buckets = true
 }
 
-# 3. *** SECURITY FIX: Define Origin Access Control (OAC) ***
-# This resource generates the secure ID that restricts access to CloudFront only.
+# 3. Define Origin Access Control (OAC)
 resource "aws_cloudfront_origin_access_control" "website_oac" {
   name                              = "my-s3-oac"
   description                       = "OAC for secure S3 access via CloudFront"
-  origin_access_control_origin_type = "s3" # Must be 's3' when accessing an S3 bucket
+  origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
 }
 
-# 4. S3 Bucket Policy restricted ONLY to the OAC (Principle of Least Privilege)
+# 4. S3 Bucket Policy restricted to CloudFront using OAC Condition
 resource "aws_s3_bucket_policy" "allow_cloudfront" {
   bucket = aws_s3_bucket.website_bucket.id
 
@@ -35,44 +34,48 @@ resource "aws_s3_bucket_policy" "allow_cloudfront" {
     Version = "2012-10-17",
     Statement = [
       {
-        Sid       = "RestrictToCloudFrontOAC",
+        Sid       = "AllowCloudFrontServicePrincipalReadOnly",
         Effect    = "Allow",
         Principal = {
-          AWS = [aws_cloudfront_origin_access_control.website_oac.iam_arn] # Use the OAC ARN as principal
+          Service = "cloudfront.amazonaws.com"
         },
         Action   = "s3:GetObject",
-        Resource = "${aws_s3_bucket.website_bucket.arn}/*"
+        Resource = "${aws_s3_bucket.website_bucket.arn}/*",
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.main.arn
+          }
+        }
       }
     ]
   })
 }
 
-# 5. CloudFront Distribution pointing to the S3 bucket (Now using OAC)
+# 5. CloudFront Distribution pointing to the S3 bucket (Using OAC)
 resource "aws_cloudfront_distribution" "main" {
-  origin          = aws_s3_bucket.website_bucket.id # Origin ID for reference, actual config is in s3_origin_config block
-  enabled         = true
+  enabled             = true
   default_root_object = "index.html"
 
-  # Define the S3 origin and enforce OAC usage
   origin {
-    domain_name = aws_s3_bucket.website_bucket.bucket_regional_domain_name
-    origin_id   = "${var.project_name}-s3-origin"
-    s3_origin_config {
-      # This is the correct way to enforce the OAC ID for s3 origins
-      origin_access_control_id = aws_cloudfront_origin_access_control.website_oac.id
-    }
+    domain_name              = aws_s3_bucket.website_bucket.bucket_regional_domain_name
+    origin_id                = "${var.project_name}-s3-origin"
+    origin_access_control_id = aws_cloudfront_origin_access_control.website_oac.id
+    # REMOVED: s3_origin_config { ... } (not needed when using OAC)
   }
 
   default_cache_behavior {
-    target_origin_id       = "${var.project_name}-s3-origin" # Must match the origin ID above
+    target_origin_id       = "${var.project_name}-s3-origin"
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
 
+    # FIX: Corrected attribute names and structure for forwarded_values
     forwarded_values {
-      query     = true
-      cookies   = {}
-      headers   = []
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
     }
   }
 
@@ -83,6 +86,6 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true # Use ACM certs in production
+    cloudfront_default_certificate = true
   }
 }
